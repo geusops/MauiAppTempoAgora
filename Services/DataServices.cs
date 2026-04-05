@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace MauiAppTempoAgora.Services
@@ -10,6 +11,14 @@ namespace MauiAppTempoAgora.Services
     {
         public static async Task<Tempo?> GetPrevisao(string cidade)
         {
+            // https://learn.microsoft.com/en-us/dotnet/maui/platform-integration/communication/networking?view=net-maui-10.0&tabs=windows
+            NetworkAccess accessType = Connectivity.Current.NetworkAccess;
+
+            if (accessType != NetworkAccess.Internet)
+            {
+                throw new Exception("Parece que você está sem conexão com a internet\nVerifique sua conexão e tente novamente.");
+            }
+
             Tempo? t = null;
 
             string chave = "7c2e049f008f2294ef91d1ebff7b3443";
@@ -19,6 +28,7 @@ namespace MauiAppTempoAgora.Services
             using (HttpClient client = new HttpClient())
             {
                 HttpResponseMessage resp = await client.GetAsync(url);
+
                 if (resp.IsSuccessStatusCode)
                 {
                     string json = await resp.Content.ReadAsStringAsync();
@@ -47,7 +57,16 @@ namespace MauiAppTempoAgora.Services
                         sunset = sunset.ToString(),
                     };//fecha objeto tempo
                 }//fecha if se o status da query for sucesso
-            }// fecha laço using
+                else
+                {
+                    string mensagemErro = await resp.Content.ReadAsStringAsync();
+                    var rascunho = JObject.Parse(mensagemErro);
+
+                    //string mensagem = rascunho["message"].ToString();
+                    throw new Exception("Cidade não encontrada\nVerifique o nome da cidade digitada e tente novamente.");
+
+                }
+          }// fecha laço using
             return t;
         }
     }
